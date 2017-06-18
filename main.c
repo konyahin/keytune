@@ -60,6 +60,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     if (hit == HTCLIENT) hit = HTCAPTION;
     return hit;
     
+  case WM_WINDOWPOSCHANGING:
+    // forbid window maximization
+    ((WINDOWPOS*) lParam)->flags |= SWP_NOSIZE;
+    return 1;
+    
   default:
     return DefWindowProc(hwnd, msg, wParam, lParam);
   }
@@ -75,14 +80,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   wc.cbSize        = sizeof(WNDCLASSEX);
   wc.lpfnWndProc   = WndProc;
   wc.hInstance     = hInstance;
-  wc.hbrBackground = 0;
+  wc.hbrBackground = 1;
   wc.lpszClassName = className;
   wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
   
   RegisterClassEx(&wc);
   
-  HWND hwnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE, className,
-			     "Keytune", WS_POPUP | WS_VISIBLE | WS_SYSMENU, CW_USEDEFAULT,
+  HWND hwnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_THICKFRAME,
+			     className, "Keytune", WS_POPUP | WS_VISIBLE | WS_SYSMENU, CW_USEDEFAULT,
 			     CW_USEDEFAULT, 160, 60, NULL, NULL, hInstance, NULL);
   ShowWindow(hwnd, nCmdShow);
   UpdateWindow(hwnd);

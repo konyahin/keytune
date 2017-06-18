@@ -11,7 +11,7 @@
  * Arguments:
  *  ip - INPUT structure from winuser.h
  *  keyCode - WORD with virtual key-code from https://msdn.microsoft.com/en-us/library/dd375731(v=vs.85).aspx
-*/
+ */
 void hold(INPUT *ip, WORD keyCode);
 
 /**
@@ -19,7 +19,7 @@ void hold(INPUT *ip, WORD keyCode);
  * Arguments:
  *  ip - INPUT structure from winuser.h
  *  keyCode - WORD with virtual key-code from https://msdn.microsoft.com/en-us/library/dd375731(v=vs.85).aspx
-*/
+ */
 void release(INPUT *ip, WORD keyCode);
 
 /**
@@ -27,7 +27,7 @@ void release(INPUT *ip, WORD keyCode);
  * Arguments:
  *  ip - INPUT structure from winuser.h
  *  keyCode - WORD with virtual key-code from https://msdn.microsoft.com/en-us/library/dd375731(v=vs.85).aspx
-*/
+ */
 void press(INPUT *ip, WORD keyCode);
 
 /**
@@ -37,5 +37,5 @@ void press(INPUT *ip, WORD keyCode);
  *  keyCode - WORD with virtual key-code from https://msdn.microsoft.com/en-us/library/dd375731(v=vs.85).aspx
  *  buffer - wxhar_t* wide chars buffer for output
  *  bufferLength size_t size of buffer 
-*/
+ */
 void getCharForKey(WORD keyCode, wchar_t* buffer, size_t bufferLength);

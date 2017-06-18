@@ -7,25 +7,32 @@
 #include "keyboard.h"
 
 
-#define BUTTON_LEFT   1
-#define BUTTON_RIGHT  2
-#define BUTTON_ESCAPE 3
+typedef struct {
+  char *title;
+  WORD keyCode;
+} Key;
+
+typedef struct {
+  int padding;
+  int width;
+  int height;
+  int rows;
+  int columns;
+  HBRUSH background;
+  Key *keys;
+} Layout;
+
+
+static Key* currentKeys = NULL;
+
+WORD getActionForKey(int keyHandler) {
+  return currentKeys[keyHandler].keyCode;
+}
 
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   switch(msg) {
-  case WM_CREATE:
-    HWND hwndButton = CreateWindow("BUTTON", "<", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 
-				   10, 10, 40, 40, hwnd, (HMENU) BUTTON_LEFT,
-				   (HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE), NULL);
-    hwndButton = CreateWindow("BUTTON", "Esc", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 
-			      60, 10, 40, 40, hwnd, (HMENU) BUTTON_ESCAPE,
-			      (HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE), NULL);
-    hwndButton = CreateWindow("BUTTON", ">", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 
-			      110, 10, 40, 40, hwnd, (HMENU) BUTTON_RIGHT,
-			      (HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE), NULL);
-    break;
-	    
+
   case WM_CLOSE:
     DestroyWindow(hwnd);
     break;
@@ -40,22 +47,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
       break;
     }
     
-    INPUT input;
-    switch(LOWORD(wParam)) {
-    case BUTTON_LEFT:
-      press(&input, VK_LEFT);
-      break;
-    case BUTTON_RIGHT:
-      press(&input, VK_RIGHT);
-      break;
-    case BUTTON_ESCAPE:
-      press(&input, VK_ESCAPE);
-      break;
-    }
+    INPUT input = {0};
+    press(&input, getActionForKey(LOWORD(wParam)));
     break;
     
-    // move window by user drag
   case WM_NCHITTEST:
+    // move window by user drag
     LRESULT hit = DefWindowProc(hwnd, msg, wParam, lParam);
     if (hit == HTCLIENT) hit = HTCAPTION;
     return hit;
@@ -73,14 +70,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+HWND createMainWindow(Layout *layout, HINSTANCE hInstance, int nCmdShow) {
   const char className[] = "keyTuneWindowClass";
   WNDCLASSEX wc = {0};
+
+  int width = (layout->width + layout->padding) * layout->columns + layout->padding;
+  int height = (layout->height + layout->padding) * layout->rows + layout->padding;
   
   wc.cbSize        = sizeof(WNDCLASSEX);
   wc.lpfnWndProc   = WndProc;
   wc.hInstance     = hInstance;
-  wc.hbrBackground = 1;
+  wc.hbrBackground = layout->background;
   wc.lpszClassName = className;
   wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
   
@@ -88,10 +88,59 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
   
   HWND hwnd = CreateWindowEx(WS_EX_APPWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_THICKFRAME,
 			     className, "Keytune", WS_POPUP | WS_VISIBLE | WS_SYSMENU, CW_USEDEFAULT,
-			     CW_USEDEFAULT, 160, 60, NULL, NULL, hInstance, NULL);
+			     CW_USEDEFAULT, width, height, NULL, NULL, hInstance, NULL);
   ShowWindow(hwnd, nCmdShow);
   UpdateWindow(hwnd);
+
+  return hwnd;
+}
+
+
+HWND createButton(Layout *layout, HWND window, int x, int y) {
+  int index = x + y * layout->columns;
+  Key key = layout->keys[index];
+
+  if (key.keyCode == NULL) {
+    return NULL;
+  }
   
+  int positionX = layout->padding + (layout->padding + layout->width) * x;
+  int positionY = layout->padding + (layout->padding + layout->height) * y;
+  return CreateWindow("BUTTON", key.title, WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 
+		      positionX, positionY, layout->width, layout->height, window, (HMENU) index,
+		      (HINSTANCE)GetWindowLong(window, GWL_HINSTANCE), NULL);
+}
+
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+
+  Key keys[] = {
+    {.title = "<", .keyCode = VK_LEFT},
+    {.title = "Esc", .keyCode = VK_ESCAPE},
+    {.title = ">", .keyCode = VK_RIGHT},
+    {0}
+  };
+  
+  Layout layout = {
+    .padding = 10,
+    .width = 60,
+    .height = 40,
+    .rows = 1,
+    .columns = 4,
+    .background = (HBRUSH) 0,
+    .keys = keys
+  };
+
+  currentKeys = layout.keys;
+
+  HWND hwnd = createMainWindow(&layout, hInstance, nCmdShow);
+
+  for (int x = 0; x < layout.columns; x++) {
+    for (int y = 0; y < layout.rows; y++) {
+      createButton(&layout, hwnd, x, y);
+    }
+  }
+
   MSG Msg;
   while(GetMessage(&Msg, NULL, 0, 0) > 0) {
     TranslateMessage(&Msg);
